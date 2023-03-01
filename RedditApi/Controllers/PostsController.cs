@@ -96,10 +96,10 @@ namespace RedditApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Post>> PostPost(Post post)
         {
-          if (_context.Post == null)
-          {
+            if (_context.Post == null)
+            {
               return Problem("Entity set 'Post.Content'  is null.");
-          }
+            }
             _context.Post.Add(post);
             await _context.SaveChangesAsync();
 
