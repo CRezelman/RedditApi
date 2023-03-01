@@ -1,10 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RedditApi.Models;
 
 namespace RedditApi.Controllers
@@ -14,10 +19,12 @@ namespace RedditApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(UserContext context)
+        public AuthController(UserContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -49,12 +56,35 @@ namespace RedditApi.Controllers
                 return BadRequest("Username not found");
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.ToList().First().PasswordHash))
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.First().PasswordHash))
             {
                 return BadRequest("Password/usernames do not match");
             }
 
-            return Ok(user);
+            string token = CreateToken(user.First());
+
+            return Ok(token);
+        }
+
+        private string CreateToken(User user)
+        {
+            List<Claim> claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.Username)
+            };
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
+
+            var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.Now.AddDays(1),
+                signingCredentials: cred
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
