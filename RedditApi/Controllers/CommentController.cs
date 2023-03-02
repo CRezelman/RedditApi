@@ -34,14 +34,19 @@ namespace RedditApi.Controllers
                 return NotFound();
             }
             
-            //Must implement query for idpost!!
+            var comments = await _context.Comment.ToListAsync();
 
             if (query.IdUser != 0)
             {
-                return await _context.Comment.Where(c => c.IdUser == query.IdUser).ToListAsync();
+                comments = comments.Where(c => c.IdUser == query.IdUser).ToList();
             }
 
-            return await _context.Comment.ToListAsync();
+            if (query.IdPost != 0)
+            {
+                comments = comments.Where(c => c.IdPost == query.IdPost).ToList();
+            }
+
+            return comments;
         }
         
         [HttpGet("{id}")]
@@ -97,7 +102,7 @@ namespace RedditApi.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!Utilities.Utilities.CommentExists(_context, id))
+                if (!Utilities.RedditApi.CommentExists(_context, id))
                 {
                     return NotFound();
                 }
@@ -117,12 +122,12 @@ namespace RedditApi.Controllers
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             comment.IdUser = Convert.ToInt64(userId.Value);
 
-            if (Utilities.Utilities.CommentExists(_context, comment.Id))
+            if (Utilities.RedditApi.CommentExists(_context, comment.Id))
             {
                 return Conflict($"Comment with ID {comment.Id} exists already, use ID: 0 to seed a new ID.");
             }
 
-            if (!Utilities.Utilities.PostExists(_postsContext, comment.IdPost))
+            if (!Utilities.RedditApi.PostExists(_postsContext, comment.IdPost))
             {
                 return Conflict($"Post with ID {comment.IdPost} does not exist.");
             }

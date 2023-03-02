@@ -2,7 +2,7 @@ using RedditApi.Models;
 
 namespace Utilities;
 
-public class Utilities
+public static class RedditApi
 {
     public static bool PostExists(PostsContext context, long id)
     {
@@ -21,5 +21,10 @@ public class Utilities
             var comments = context.Comment.Where(c => c.IdPost == post.Id);
             post.Comments = comments.ToList();
         }
+    }        
+    public static void FetchComments(CommentContext context, Post post)
+    {
+        var comments = context.Comment.Where(c => c.IdPost == post.Id);
+        post.Comments = comments.ToList();
     }
 }
