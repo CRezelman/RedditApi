@@ -60,8 +60,9 @@ namespace RedditApi.Controllers
         [SwaggerResponse(201, "Updated post.")]
         [SwaggerResponse(404, "Post does not exist")]
         [SwaggerResponse(409, "Trying to edit a post that does not belong to you.")]
-        public async Task<IActionResult> PutPost(long id, Post post)
+        public async Task<IActionResult> PutPost(long id, PostNew postPut)
         {
+            Post post = new Post(postPut);
             if (id != post.Id)
             {
                 return BadRequest("Route ID does not match body ID.");
@@ -106,8 +107,9 @@ namespace RedditApi.Controllers
         
         [HttpPost]
         [SwaggerResponse(201, "Created new post.")]
-        public async Task<ActionResult<Post>> PostPost(Post post)
+        public async Task<ActionResult<Post>> PostPost(PostNew postNew)
         {
+            Post post = new Post(postNew);
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             post.IdUser = Convert.ToInt64(userId.Value);
 
