@@ -1,16 +1,42 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using RedditApi.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-
-builder.Services.AddControllers();
 builder.Services.AddDbContext<UserContext>(opt =>
     opt.UseInMemoryDatabase("User"));
 builder.Services.AddDbContext<PostsContext>(opt =>
     opt.UseInMemoryDatabase("Post"));
+builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.OperationFilter<SecurityRequirementsOperationFilter>();
+});
+builder.Services.AddAuthentication().AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        ValidateAudience = false,
+        ValidateIssuer = false,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            builder.Configuration.GetSection("AppSettings:Token").Value!))
+    };
+});
 
 var app = builder.Build();
 
