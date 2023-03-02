@@ -135,6 +135,56 @@ namespace RedditApi.Controllers
             return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
         }
         
+        [HttpPut("{idPost}/Rating/{id}")]
+        public async Task<IActionResult> PutRating(long id, long idPost, Ratings ratings)
+        {
+            if (id != ratings.Id)
+            {
+                return BadRequest("Route ID does not match body ID.");
+            }
+            
+            if (idPost != ratings.IdPost)
+            {
+                return BadRequest("Route ID Post does not match body ID Post.");
+            }
+
+            var ratingLookup = await _ratingsContext.Ratings.FindAsync(id);
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            
+            if (ratingLookup == null)
+            {
+                return NotFound("Rating does not exist");
+            }
+            
+            if (ratingLookup.IdUser != Convert.ToInt64(userId.Value))
+            {
+                return Unauthorized("You are not authorized to edit this rating.");
+            }
+            
+            ratings.IdUser = ratingLookup.IdUser;
+            _ratingsContext.Entry(ratingLookup).State = EntityState.Detached;
+
+            _ratingsContext.Entry(ratings).State = EntityState.Modified;
+
+            try
+            {
+                await _ratingsContext.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!Utilities.RedditApi.RatingExists(_ratingsContext, id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
+            return CreatedAtAction(nameof(GetRatings), new { id = ratings.Id }, ratings);
+        }
+        
         [HttpPost]
         [SwaggerResponse(201, "Created new post.")]
         public async Task<ActionResult<Post>> PostPost(PostNew postNew)
@@ -155,7 +205,7 @@ namespace RedditApi.Controllers
         }
         
         [Route("{idPost}/Rating")]
-        [HttpPut]
+        [HttpPost]
         [SwaggerResponse(201, "Create or Update a post's ratings")]
         public async Task<ActionResult<Ratings>> PostRatings(long idPost, Ratings ratings)
         {
@@ -168,7 +218,11 @@ namespace RedditApi.Controllers
                 return Conflict($"Post with ID {idPost} does not exist");
             }
             
-
+            if (Utilities.RedditApi.RatingExists(_ratingsContext, ratings.IdPost))
+            {
+                return Conflict($"Post already has a rating");
+            }
+            
             _ratingsContext.Add(ratings);
             await _ratingsContext.SaveChangesAsync();
             

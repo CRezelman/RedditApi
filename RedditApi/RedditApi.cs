@@ -13,6 +13,11 @@ public static class RedditApi
     {
         return (context.Comment?.Any(e => e.Id == id)).GetValueOrDefault();
     }
+    
+    public static bool RatingExists(RatingsContext context, long idPost)
+    {
+        return (context.Ratings?.Any(e => e.IdPost == idPost)).GetValueOrDefault();
+    }
         
     public static void FetchComments(CommentContext context, List<Post> posts)
     {
