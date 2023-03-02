@@ -48,7 +48,6 @@ namespace RedditApi.Controllers
             }
             
             Utilities.RedditApi.FetchComments(_commentContext, posts);
-            Utilities.RedditApi.FetchRatings(_ratingsContext, posts);
 
             return posts;
         }
@@ -156,20 +155,19 @@ namespace RedditApi.Controllers
         }
         
         [Route("{idPost}/Rating")]
-        [HttpPost]
-        [SwaggerResponse(201, "Created new post.")]
+        [HttpPut]
+        [SwaggerResponse(201, "Create or Update a post's ratings")]
         public async Task<ActionResult<Ratings>> PostRatings(long idPost, Ratings ratings)
         {
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             ratings.IdUser = Convert.ToInt64(userId.Value);
             ratings.IdPost = idPost;
-            
+
             if (!Utilities.RedditApi.PostExists(_context, idPost))
             {
                 return Conflict($"Post with ID {idPost} does not exist");
             }
             
-            // implement non duplicate ratings check
 
             _ratingsContext.Add(ratings);
             await _ratingsContext.SaveChangesAsync();
