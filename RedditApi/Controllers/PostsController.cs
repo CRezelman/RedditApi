@@ -18,12 +18,9 @@ namespace RedditApi.Controllers
     public class PostsController : ControllerBase
     {
         private readonly PostsContext _context;
-        private readonly UserContext _userContext;
-
-        public PostsController(PostsContext context, UserContext userContext)
+        public PostsController(PostsContext context)
         {
             _context = context;
-            _userContext = userContext;
         }
         
         [HttpGet]
@@ -67,25 +64,26 @@ namespace RedditApi.Controllers
         {
             if (id != post.Id)
             {
-                return BadRequest();
+                return BadRequest("Route ID does not match body ID.");
             }
 
             var postLookup = await _context.Post.FindAsync(id);
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             
-            if (postLookup != null && postLookup.IdUser != post.IdUser)
+            if (postLookup == null)
             {
-                return Conflict("User ID differs from original post.");
+                return NotFound("Post does not exist");
             }
             
-            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-
-            if (post.IdUser != Convert.ToInt64(userId.Value))
+            if (postLookup.IdUser != Convert.ToInt64(userId.Value))
             {
                 return Unauthorized("You are not authorized to edit this post.");
             }
             
+            post.IdUser = postLookup.IdUser;
+            _context.Entry(postLookup).State = EntityState.Detached;
 
-            // _context.Entry(post).State = EntityState.Modified;
+            _context.Entry(post).State = EntityState.Modified;
 
             try
             {
@@ -112,6 +110,11 @@ namespace RedditApi.Controllers
         {
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             post.IdUser = Convert.ToInt64(userId.Value);
+
+            if (PostExists(post.Id))
+            {
+                return Conflict($"Post with ID {post.Id} exists already, use ID: 0 to seed a new ID.");
+            }
             
             _context.Post.Add(post);
             await _context.SaveChangesAsync();
@@ -126,16 +129,24 @@ namespace RedditApi.Controllers
             {
                 return NotFound();
             }
+
             var post = await _context.Post.FindAsync(id);
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+    
             if (post == null)
             {
-                return NotFound();
+                return NotFound("Post does not exist.");
+            }
+            
+            if (post.IdUser != Convert.ToInt64(userId.Value))
+            {
+                return Unauthorized("You are not authorized to delete this post.");
             }
 
             _context.Post.Remove(post);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok($"Deleted post with ID {post.Id}.");
         }
 
         private bool PostExists(long id)

@@ -11,7 +11,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<UserContext>(opt =>
     opt.UseInMemoryDatabase("User"));
 builder.Services.AddDbContext<PostsContext>(opt =>
-    opt.UseInMemoryDatabase("Post"));
+{
+    opt.UseInMemoryDatabase("Post");
+    opt.EnableSensitiveDataLogging();
+});
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
