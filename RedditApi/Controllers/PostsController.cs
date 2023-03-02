@@ -18,9 +18,11 @@ namespace RedditApi.Controllers
     public class PostsController : ControllerBase
     {
         private readonly PostsContext _context;
-        public PostsController(PostsContext context)
+        private readonly CommentContext _commentContext;
+        public PostsController(PostsContext context, CommentContext commentContext)
         {
             _context = context;
+            _commentContext = commentContext;
         }
         
         [HttpGet]
@@ -35,10 +37,13 @@ namespace RedditApi.Controllers
             {
                 return await _context.Post.Where(p => p.IdUser == query.IdUser).ToListAsync();
             }
+            
+            var posts = await _context.Post.ToListAsync();
+            Utilities.Utilities.FetchComments(_commentContext, posts);
 
-            return await _context.Post.ToListAsync();
+            return posts;
         }
-        
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Post>> GetPost(long id)
         {
@@ -92,7 +97,7 @@ namespace RedditApi.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PostExists(id))
+                if (!Utilities.Utilities.PostExists(_context, id))
                 {
                     return NotFound();
                 }
@@ -113,7 +118,7 @@ namespace RedditApi.Controllers
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             post.IdUser = Convert.ToInt64(userId.Value);
 
-            if (PostExists(post.Id))
+            if (Utilities.Utilities.PostExists(_context, post.Id))
             {
                 return Conflict($"Post with ID {post.Id} exists already, use ID: 0 to seed a new ID.");
             }
@@ -149,11 +154,6 @@ namespace RedditApi.Controllers
             await _context.SaveChangesAsync();
 
             return Ok($"Deleted post with ID {post.Id}.");
-        }
-
-        private bool PostExists(long id)
-        {
-            return (_context.Post?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

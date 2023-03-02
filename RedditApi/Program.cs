@@ -10,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<UserContext>(opt =>
     opt.UseInMemoryDatabase("User"));
+builder.Services.AddDbContext<CommentContext>(opt =>
+    opt.UseInMemoryDatabase("Comment"));
 builder.Services.AddDbContext<PostsContext>(opt =>
 {
     opt.UseInMemoryDatabase("Post");
