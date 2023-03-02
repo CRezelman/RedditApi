@@ -45,3 +45,11 @@ A user can create as many posts as they like but only the owner of the post of e
 
 ## Comments
 A user can comment on any post that exists and only the owner of the comment can edit or delete their comments. There is no limit to the number of comments allowed per post.
+
+## Ratings
+Ratings follow the folling scheme:
+0: None
+1: Downvote
+2: Upvote
+
+Anyone can rate a post or a comment once, they cannot delete their rating but can change it to any valid state in the scheme. 
