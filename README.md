@@ -4,6 +4,9 @@ Makeshift Reddit API
 ## Environment
 This Restful API is developed and maintained using .NET 7 using Rider IDE. Although other IDEs can be used, everything was tested using Rider.
 
+## Database
+This project makes use of an in memory database context and therefore the data only persists while the project is running. Take note restarting the application will result in all data to be lost. The primary function is to verify the endpoints work as expected, and this can be achieved with the current setup.
+
 ## Authentication
 
 ### Registering
@@ -35,3 +38,10 @@ The following header needs to provided when utilising endpoints that require aut
 ```
 "Authorisation": "bearer <Your JWT>"
 ```
+Authorisation can also be done using Swagger by inserting `bearer <Your JWT>` into the authorise field.
+
+## Posts
+A user can create as many posts as they like but only the owner of the post of edit or delete their posts. 
+
+## Comments
+A user can comment on any post that exists and only the owner of the comment can edit or delete their comments. There is no limit to the number of comments allowed per post.
