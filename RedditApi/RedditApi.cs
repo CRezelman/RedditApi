@@ -27,4 +27,18 @@ public static class RedditApi
         var comments = context.Comment.Where(c => c.IdPost == post.Id);
         post.Comments = comments.ToList();
     }
+    
+    public static void FetchRatings(RatingsContext context, List<Post> posts)
+    {
+        foreach (var post in posts)
+        {
+            var ratings = context.Ratings.Where(r => r.IdPost == post.Id);
+            post.Ratings = ratings.ToList();
+        }
+    } 
+    public static void FetchRatings(RatingsContext context, Post post)
+    {
+        var ratings = context.Ratings.Where(r => r.IdPost == post.Id);
+        post.Ratings = ratings.ToList();
+    }
 }

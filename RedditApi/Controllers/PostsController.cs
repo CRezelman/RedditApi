@@ -14,10 +14,12 @@ namespace RedditApi.Controllers
     {
         private readonly PostsContext _context;
         private readonly CommentContext _commentContext;
-        public PostsController(PostsContext context, CommentContext commentContext)
+        private readonly RatingsContext _ratingsContext;
+        public PostsController(PostsContext context, CommentContext commentContext, RatingsContext ratingsContext)
         {
             _context = context;
             _commentContext = commentContext;
+            _ratingsContext = ratingsContext;
         }
         
         [HttpGet]
@@ -28,13 +30,25 @@ namespace RedditApi.Controllers
                 return NotFound();
             }
             var posts = await _context.Post.ToListAsync();
+            Utilities.RedditApi.FetchRatings(_ratingsContext, posts);
 
             if (query.IdUser != 0)
             {
                posts = posts.Where(p => p.IdUser == query.IdUser).ToList();
             }
+
+            if (query.IdUserRatings != 0)
+            {
+                posts = posts.Where(p => p.Ratings.FindAll(r => r.IdUser == query.IdUserRatings).Count > 0).ToList();
+            }
+
+            if (query.Ratings != RatingsType.None)
+            {
+                posts = posts.Where(p => p.Ratings.FindAll(r => r.Rating == query.Ratings).Count > 0).ToList();
+            }
             
             Utilities.RedditApi.FetchComments(_commentContext, posts);
+            Utilities.RedditApi.FetchRatings(_ratingsContext, posts);
 
             return posts;
         }
@@ -55,6 +69,22 @@ namespace RedditApi.Controllers
             Utilities.RedditApi.FetchComments(_commentContext, post);
 
             return post;
+        }
+        [HttpGet("Rating/{id}")]
+        public async Task<ActionResult<Ratings>> GetRatings(long id)
+        {
+            if (_ratingsContext.Ratings == null)
+            {
+                return NotFound();
+            }
+            var ratings = await _ratingsContext.Ratings.FindAsync(id);
+
+            if (ratings == null)
+            {
+                return NotFound();
+            }
+
+            return ratings;
         }
         
         [HttpPut("{id}")]
@@ -123,6 +153,28 @@ namespace RedditApi.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
+        }
+        
+        [Route("{idPost}/Rating")]
+        [HttpPost]
+        [SwaggerResponse(201, "Created new post.")]
+        public async Task<ActionResult<Ratings>> PostRatings(long idPost, Ratings ratings)
+        {
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            ratings.IdUser = Convert.ToInt64(userId.Value);
+            ratings.IdPost = idPost;
+            
+            if (!Utilities.RedditApi.PostExists(_context, idPost))
+            {
+                return Conflict($"Post with ID {idPost} does not exist");
+            }
+            
+            // implement non duplicate ratings check
+
+            _ratingsContext.Add(ratings);
+            await _ratingsContext.SaveChangesAsync();
+            
+            return CreatedAtAction(nameof(GetRatings), new { id = ratings.Id }, ratings);
         }
         
         [HttpDelete("{id}")]

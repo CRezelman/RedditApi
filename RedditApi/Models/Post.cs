@@ -14,12 +14,14 @@ namespace RedditApi.Models
     {
         public long IdUser { get; set; }
         public List<Comment>? Comments { get; set; }
+        public List<Ratings>? Ratings { get; set; }
 
         public Post()
         {
             Title = string.Empty;
             Body = string.Empty;
             Comments = new List<Comment>();
+            Ratings = new List<Ratings>();
         }
 
         public Post(PostNew postNew)
@@ -33,10 +35,14 @@ namespace RedditApi.Models
     public class PostQuery
     {
         public int IdUser { get; set; }
+        public int IdUserRatings { get; set; }
+        public RatingsType Ratings { get; set; }
 
         public PostQuery()
         {
             IdUser = 0;
+            IdUserRatings = 0;
+            Ratings = RatingsType.None;
         }
     }
     
