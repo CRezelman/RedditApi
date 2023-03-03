@@ -14,9 +14,9 @@ public static class RedditApi
         return (context.Comment?.Any(e => e.Id == id)).GetValueOrDefault();
     }
     
-    public static bool RatingExists(RatingsPostContext postContext, long idPost)
+    public static bool RatingPostExists(RatingsPostContext context, long idPost)
     {
-        return (postContext.Ratings?.Any(e => e.IdPost == idPost)).GetValueOrDefault();
+        return (context.Ratings?.Any(e => e.IdPost == idPost)).GetValueOrDefault();
     }
         
     public static void FetchComments(CommentContext context, List<Post> posts)

@@ -172,7 +172,7 @@ namespace RedditApi.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!Utilities.RedditApi.RatingExists(_ratingsPostContext, id))
+                if (!Utilities.RedditApi.RatingPostExists(_ratingsPostContext, id))
                 {
                     return NotFound();
                 }
@@ -218,7 +218,7 @@ namespace RedditApi.Controllers
                 return Conflict($"Post with ID {idPost} does not exist");
             }
             
-            if (Utilities.RedditApi.RatingExists(_ratingsPostContext, ratingsPost.IdPost))
+            if (Utilities.RedditApi.RatingPostExists(_ratingsPostContext, ratingsPost.IdPost))
             {
                 return Conflict($"Post already has a rating");
             }
