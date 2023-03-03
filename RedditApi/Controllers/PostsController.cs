@@ -15,11 +15,13 @@ namespace RedditApi.Controllers
         private readonly PostsContext _context;
         private readonly CommentContext _commentContext;
         private readonly RatingsPostContext _ratingsPostContext;
-        public PostsController(PostsContext context, CommentContext commentContext, RatingsPostContext ratingsPostContext)
+        private readonly RatingsCommentsContext _ratingsCommentsContext;
+        public PostsController(PostsContext context, CommentContext commentContext, RatingsPostContext ratingsPostContext, RatingsCommentsContext ratingsCommentsContext)
         {
             _context = context;
             _commentContext = commentContext;
             _ratingsPostContext = ratingsPostContext;
+            _ratingsCommentsContext = ratingsCommentsContext;
         }
         
         [HttpGet]
@@ -47,7 +49,7 @@ namespace RedditApi.Controllers
                 posts = posts.Where(p => p.Ratings.FindAll(r => r.Rating == query.Ratings).Count > 0).ToList();
             }
             
-            Utilities.RedditApi.FetchComments(_commentContext, posts);
+            Utilities.RedditApi.FetchComments(_commentContext, _ratingsCommentsContext, posts);
 
             return posts;
         }
@@ -69,6 +71,7 @@ namespace RedditApi.Controllers
 
             return post;
         }
+        
         [HttpGet("Rating/{id}")]
         public async Task<ActionResult<RatingsPost>> GetRatings(long id)
         {
@@ -206,9 +209,14 @@ namespace RedditApi.Controllers
         
         [Route("{idPost}/Rating")]
         [HttpPost]
-        [SwaggerResponse(201, "Create or Update a post's ratings")]
+        [SwaggerResponse(201, "Add a rating to a post.")]
         public async Task<ActionResult<RatingsPost>> PostRatings(long idPost, RatingsPost ratingsPost)
         {
+            if (idPost != ratingsPost.IdPost)
+            {
+                return BadRequest("Route IdPost does not match body IdPost");
+            }
+
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             ratingsPost.IdUser = Convert.ToInt64(userId.Value);
             ratingsPost.IdPost = idPost;

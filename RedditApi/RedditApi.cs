@@ -24,12 +24,13 @@ public static class RedditApi
         return (context.RatingsComments?.Any(e => e.IdComment == idComment)).GetValueOrDefault();
     }
         
-    public static void FetchComments(CommentContext context, List<Post> posts)
+    public static void FetchComments(CommentContext context, RatingsCommentsContext commentContext, List<Post> posts)
     {
         foreach (var post in posts)
         {
             var comments = context.Comment.Where(c => c.IdPost == post.Id);
             post.Comments = comments.ToList();
+            FetchCommentRatings(commentContext, post.Comments);
         }
     }        
     public static void FetchComments(CommentContext context, Post post)
@@ -37,6 +38,15 @@ public static class RedditApi
         var comments = context.Comment.Where(c => c.IdPost == post.Id);
         post.Comments = comments.ToList();
     }
+    
+    public static void FetchCommentRatings(RatingsCommentsContext commentContext, List<Comment> comments)
+    {
+        foreach (var comment in comments)
+        {
+            var ratings = commentContext.RatingsComments.Where(r => r.IdComment == comment.Id);
+            comment.Ratings = ratings.ToList();
+        }
+    } 
     
     public static void FetchPostRatings(RatingsPostContext postContext, List<Post> posts)
     {

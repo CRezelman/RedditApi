@@ -14,10 +14,12 @@ namespace RedditApi.Controllers
     {
         private readonly CommentContext _context;
         private readonly PostsContext _postsContext;
-        public CommentController(CommentContext context, PostsContext postsContext)
+        private readonly RatingsCommentsContext _ratingsCommentsContext;
+        public CommentController(CommentContext context, PostsContext postsContext, RatingsCommentsContext ratingsCommentsContext)
         {
             _context = context;
             _postsContext = postsContext;
+            _ratingsCommentsContext = ratingsCommentsContext;
         }
         
         [HttpGet]
@@ -60,12 +62,30 @@ namespace RedditApi.Controllers
             return comment;
         }
         
+        [HttpGet("Rating/{id}")]
+        public async Task<ActionResult<RatingsComments>> GetRatings(long id)
+        {
+            if (_ratingsCommentsContext.RatingsComments == null)
+            {
+                return NotFound();
+            }
+            var ratings = await _ratingsCommentsContext.RatingsComments.FindAsync(id);
+
+            if (ratings == null)
+            {
+                return NotFound();
+            }
+
+            return ratings;
+        }
+        
         [HttpPut("{id}")]
         [SwaggerResponse(201, "Updated Comment.")]
         [SwaggerResponse(404, "Comment does not exist")]
         [SwaggerResponse(409, "Trying to edit a comment that does not belong to you.")]
-        public async Task<IActionResult> PutComment(long id, Comment comment)
+        public async Task<IActionResult> PutComment(long id, CommentNew commentPut)
         {
+            Comment comment = new Comment(commentPut);
             if (id != comment.Id)
             {
                 return BadRequest("Route ID does not match body ID.");
@@ -109,10 +129,61 @@ namespace RedditApi.Controllers
             return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
         }
         
+        [HttpPut("{idComment}/Rating/{id}")]
+        public async Task<IActionResult> PutRating(long id, long idComment, RatingsComments ratingsComments)
+        {
+            if (id != ratingsComments.Id)
+            {
+                return BadRequest("Route ID does not match body ID.");
+            }
+            
+            if (idComment != ratingsComments.IdComment)
+            {
+                return BadRequest("Route ID Comment does not match body ID Comment.");
+            }
+
+            var ratingLookup = await _ratingsCommentsContext.RatingsComments.FindAsync(id);
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            
+            if (ratingLookup == null)
+            {
+                return NotFound("Rating does not exist");
+            }
+            
+            if (ratingLookup.IdUser != Convert.ToInt64(userId.Value))
+            {
+                return Unauthorized("You are not authorized to edit this rating.");
+            }
+            
+            ratingsComments.IdUser = ratingLookup.IdUser;
+            _ratingsCommentsContext.Entry(ratingLookup).State = EntityState.Detached;
+
+            _ratingsCommentsContext.Entry(ratingsComments).State = EntityState.Modified;
+
+            try
+            {
+                await _ratingsCommentsContext.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!Utilities.RedditApi.RatingCommentExists(_ratingsCommentsContext, id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
+            return CreatedAtAction(nameof(GetRatings), new { id = ratingsComments.Id }, ratingsComments);
+        }
+        
         [HttpPost]
         [SwaggerResponse(201, "Created new comment.")]
-        public async Task<ActionResult<Comment>> PostComment(Comment comment)
+        public async Task<ActionResult<Comment>> PostComment(CommentNew commentNew)
         {
+            Comment comment = new Comment(commentNew);
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             comment.IdUser = Convert.ToInt64(userId.Value);
 
@@ -130,6 +201,35 @@ namespace RedditApi.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
+        }
+        
+        [Route("{idComment}/Rating")]
+        [HttpPost]
+        [SwaggerResponse(201, "Add a rating to a comment.")]
+        public async Task<ActionResult<RatingsComments>> PostRatings(long idComment, RatingsComments ratingsComments)
+        {
+            if (idComment != ratingsComments.IdComment)
+            {
+                return BadRequest("Route IdComment does not match body IdComment");
+            }
+            Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+            ratingsComments.IdUser = Convert.ToInt64(userId.Value);
+            ratingsComments.IdComment = idComment;
+
+            if (!Utilities.RedditApi.CommentExists(_context, idComment))
+            {
+                return Conflict($"Comment with ID {idComment} does not exist");
+            }
+            
+            if (Utilities.RedditApi.RatingCommentExists(_ratingsCommentsContext, ratingsComments.IdComment))
+            {
+                return Conflict($"Comment already has a rating");
+            }
+            
+            _ratingsCommentsContext.Add(ratingsComments);
+            await _ratingsCommentsContext.SaveChangesAsync();
+            
+            return CreatedAtAction(nameof(GetRatings), new { id = ratingsComments.Id }, ratingsComments);
         }
         
         [HttpDelete("{id}")]
