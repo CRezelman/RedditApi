@@ -9,5 +9,5 @@ public class RatingsPostContext : DbContext
     {
     }
 
-    public DbSet<RatingsPost> Ratings { get; set; } = null!;
+    public DbSet<RatingsPost> RatingsPosts { get; set; } = null!;
 }

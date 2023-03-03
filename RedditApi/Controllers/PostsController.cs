@@ -30,7 +30,7 @@ namespace RedditApi.Controllers
                 return NotFound();
             }
             var posts = await _context.Post.ToListAsync();
-            Utilities.RedditApi.FetchRatings(_ratingsPostContext, posts);
+            Utilities.RedditApi.FetchPostRatings(_ratingsPostContext, posts);
 
             if (query.IdUser != 0)
             {
@@ -72,11 +72,11 @@ namespace RedditApi.Controllers
         [HttpGet("Rating/{id}")]
         public async Task<ActionResult<RatingsPost>> GetRatings(long id)
         {
-            if (_ratingsPostContext.Ratings == null)
+            if (_ratingsPostContext.RatingsPosts == null)
             {
                 return NotFound();
             }
-            var ratings = await _ratingsPostContext.Ratings.FindAsync(id);
+            var ratings = await _ratingsPostContext.RatingsPosts.FindAsync(id);
 
             if (ratings == null)
             {
@@ -148,7 +148,7 @@ namespace RedditApi.Controllers
                 return BadRequest("Route ID Post does not match body ID Post.");
             }
 
-            var ratingLookup = await _ratingsPostContext.Ratings.FindAsync(id);
+            var ratingLookup = await _ratingsPostContext.RatingsPosts.FindAsync(id);
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             
             if (ratingLookup == null)
