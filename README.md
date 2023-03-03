@@ -53,3 +53,15 @@ Ratings follow the folling scheme:
 2: Upvote
 
 Anyone can rate a post or a comment once, they cannot delete their rating but can change it to any valid state in the scheme. 
+
+## Testing
+Testing was performed using swagger at `/swagger/index.html`. All endpoints were tested and to make sure they behaved as expected.
+
+### Endpoints available:
+- `/api/Post` GET, POST
+- `/api/Post/{id}` GET, PUT, DELETE
+- `/api/Post/Rating/{id}` GET
+- `/api/Post/{idPost}/Rating/{id}` PUT
+- `/api/Post/{idPost}/Rating` POST
+- `/api/Comment` GET, POST
+- `/api/Comment/{id}` GET, PUT, DELETE
