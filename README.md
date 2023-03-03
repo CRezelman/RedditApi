@@ -65,3 +65,6 @@ Testing was performed using swagger at `/swagger/index.html`. All endpoints were
 - `/api/Post/{idPost}/Rating` POST
 - `/api/Comment` GET, POST
 - `/api/Comment/{id}` GET, PUT, DELETE
+- `/api/Comment/Rating/{id}` GET
+- `/api/Comment/{idPost}/Rating/{id}` PUT
+- `/api/Comment/{idPost}/Rating` POST
