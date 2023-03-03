@@ -14,14 +14,14 @@ namespace RedditApi.Models
     {
         public long IdUser { get; set; }
         public List<Comment>? Comments { get; set; }
-        public List<Ratings>? Ratings { get; set; }
+        public List<RatingsPost>? Ratings { get; set; }
 
         public Post()
         {
             Title = string.Empty;
             Body = string.Empty;
             Comments = new List<Comment>();
-            Ratings = new List<Ratings>();
+            Ratings = new List<RatingsPost>();
         }
 
         public Post(PostNew postNew)

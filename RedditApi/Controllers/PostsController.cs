@@ -14,12 +14,12 @@ namespace RedditApi.Controllers
     {
         private readonly PostsContext _context;
         private readonly CommentContext _commentContext;
-        private readonly RatingsContext _ratingsContext;
-        public PostsController(PostsContext context, CommentContext commentContext, RatingsContext ratingsContext)
+        private readonly RatingsPostContext _ratingsPostContext;
+        public PostsController(PostsContext context, CommentContext commentContext, RatingsPostContext ratingsPostContext)
         {
             _context = context;
             _commentContext = commentContext;
-            _ratingsContext = ratingsContext;
+            _ratingsPostContext = ratingsPostContext;
         }
         
         [HttpGet]
@@ -30,7 +30,7 @@ namespace RedditApi.Controllers
                 return NotFound();
             }
             var posts = await _context.Post.ToListAsync();
-            Utilities.RedditApi.FetchRatings(_ratingsContext, posts);
+            Utilities.RedditApi.FetchRatings(_ratingsPostContext, posts);
 
             if (query.IdUser != 0)
             {
@@ -70,13 +70,13 @@ namespace RedditApi.Controllers
             return post;
         }
         [HttpGet("Rating/{id}")]
-        public async Task<ActionResult<Ratings>> GetRatings(long id)
+        public async Task<ActionResult<RatingsPost>> GetRatings(long id)
         {
-            if (_ratingsContext.Ratings == null)
+            if (_ratingsPostContext.Ratings == null)
             {
                 return NotFound();
             }
-            var ratings = await _ratingsContext.Ratings.FindAsync(id);
+            var ratings = await _ratingsPostContext.Ratings.FindAsync(id);
 
             if (ratings == null)
             {
@@ -136,19 +136,19 @@ namespace RedditApi.Controllers
         }
         
         [HttpPut("{idPost}/Rating/{id}")]
-        public async Task<IActionResult> PutRating(long id, long idPost, Ratings ratings)
+        public async Task<IActionResult> PutRating(long id, long idPost, RatingsPost ratingsPost)
         {
-            if (id != ratings.Id)
+            if (id != ratingsPost.Id)
             {
                 return BadRequest("Route ID does not match body ID.");
             }
             
-            if (idPost != ratings.IdPost)
+            if (idPost != ratingsPost.IdPost)
             {
                 return BadRequest("Route ID Post does not match body ID Post.");
             }
 
-            var ratingLookup = await _ratingsContext.Ratings.FindAsync(id);
+            var ratingLookup = await _ratingsPostContext.Ratings.FindAsync(id);
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
             
             if (ratingLookup == null)
@@ -161,18 +161,18 @@ namespace RedditApi.Controllers
                 return Unauthorized("You are not authorized to edit this rating.");
             }
             
-            ratings.IdUser = ratingLookup.IdUser;
-            _ratingsContext.Entry(ratingLookup).State = EntityState.Detached;
+            ratingsPost.IdUser = ratingLookup.IdUser;
+            _ratingsPostContext.Entry(ratingLookup).State = EntityState.Detached;
 
-            _ratingsContext.Entry(ratings).State = EntityState.Modified;
+            _ratingsPostContext.Entry(ratingsPost).State = EntityState.Modified;
 
             try
             {
-                await _ratingsContext.SaveChangesAsync();
+                await _ratingsPostContext.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!Utilities.RedditApi.RatingExists(_ratingsContext, id))
+                if (!Utilities.RedditApi.RatingExists(_ratingsPostContext, id))
                 {
                     return NotFound();
                 }
@@ -182,7 +182,7 @@ namespace RedditApi.Controllers
                 }
             }
             
-            return CreatedAtAction(nameof(GetRatings), new { id = ratings.Id }, ratings);
+            return CreatedAtAction(nameof(GetRatings), new { id = ratingsPost.Id }, ratingsPost);
         }
         
         [HttpPost]
@@ -207,26 +207,26 @@ namespace RedditApi.Controllers
         [Route("{idPost}/Rating")]
         [HttpPost]
         [SwaggerResponse(201, "Create or Update a post's ratings")]
-        public async Task<ActionResult<Ratings>> PostRatings(long idPost, Ratings ratings)
+        public async Task<ActionResult<RatingsPost>> PostRatings(long idPost, RatingsPost ratingsPost)
         {
             Claim userId = User.Claims.First(a => a.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-            ratings.IdUser = Convert.ToInt64(userId.Value);
-            ratings.IdPost = idPost;
+            ratingsPost.IdUser = Convert.ToInt64(userId.Value);
+            ratingsPost.IdPost = idPost;
 
             if (!Utilities.RedditApi.PostExists(_context, idPost))
             {
                 return Conflict($"Post with ID {idPost} does not exist");
             }
             
-            if (Utilities.RedditApi.RatingExists(_ratingsContext, ratings.IdPost))
+            if (Utilities.RedditApi.RatingExists(_ratingsPostContext, ratingsPost.IdPost))
             {
                 return Conflict($"Post already has a rating");
             }
             
-            _ratingsContext.Add(ratings);
-            await _ratingsContext.SaveChangesAsync();
+            _ratingsPostContext.Add(ratingsPost);
+            await _ratingsPostContext.SaveChangesAsync();
             
-            return CreatedAtAction(nameof(GetRatings), new { id = ratings.Id }, ratings);
+            return CreatedAtAction(nameof(GetRatings), new { id = ratingsPost.Id }, ratingsPost);
         }
         
         [HttpDelete("{id}")]

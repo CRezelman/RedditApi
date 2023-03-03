@@ -12,8 +12,10 @@ builder.Services.AddDbContext<UserContext>(opt =>
     opt.UseInMemoryDatabase("User"));
 builder.Services.AddDbContext<CommentContext>(opt =>
     opt.UseInMemoryDatabase("Comment"));
-builder.Services.AddDbContext<RatingsContext>(opt =>
-    opt.UseInMemoryDatabase("Rating"));
+builder.Services.AddDbContext<RatingsPostContext>(opt =>
+    opt.UseInMemoryDatabase("RatingPost"));
+builder.Services.AddDbContext<RatingsCommentsContext>(opt =>
+    opt.UseInMemoryDatabase("RatingComments"));
 builder.Services.AddDbContext<PostsContext>(opt =>
 {
     opt.UseInMemoryDatabase("Post");
